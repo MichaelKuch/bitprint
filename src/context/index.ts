@@ -12,6 +12,7 @@ export const initialContext = {
     username: true,
     password: true,
     totp: true,
+    uris: true,
     notes: true,
     fields: true
   },

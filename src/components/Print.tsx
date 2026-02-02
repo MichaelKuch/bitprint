@@ -160,6 +160,18 @@ export default class Print extends Component {
                               <span>{login.totp}</span>
                             </div>
                           )}
+                          {login.uris &&
+                            login.uris.map((url, index) => (
+                              <div
+                                className={classNames({
+                                  hidden: !dataToPrint['uris'],
+                                  'px-4 py-2 border-t border-gray-400': true
+                                })}
+                                key={index}
+                              >
+                                <span className="text-gray-500">{url.uri}</span>
+                              </div>
+                            ))}
                           {notes && (
                             <div
                               className={classNames({
