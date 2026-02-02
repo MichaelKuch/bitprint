@@ -27,7 +27,12 @@ export default class Header extends Component {
 
     reader.onload = event => {
       if (file.type === 'application/json') {
-        const data = JSON.parse(event.target.result);
+        let data = JSON.parse(event.target.result);
+
+        if (!('folders' in data)) {
+            data.folders = [];
+        }
+
         const foldersToPrint = data.folders.map(({ id }) => id);
 
         this.context.setContext({ data, file, foldersToPrint });
