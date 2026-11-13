@@ -8,7 +8,7 @@
   }
 
   html {
-    font-size: 15px;
+    font-size: 14px;
   }
 
   main {
@@ -165,4 +165,17 @@ input[type='file'] {
   font-size: 0px;
   margin-left: -10px;
   width: calc(100% + 1000px);
+}
+
+.item-wrapper {
+  display: flex;
+  align-content: space-between;
+}
+
+.item-data {
+  width: calc(100% - 150px);
+}
+
+.item-qr {
+  align-self: flex-end;
 }

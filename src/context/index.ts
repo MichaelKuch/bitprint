@@ -14,7 +14,8 @@ export const initialContext = {
     totp: true,
     uris: true,
     notes: true,
-    fields: true
+    fields: true,
+    qrcodes: true
   },
   error: null,
   file: {

@@ -6,6 +6,8 @@ import Context from '../context/index.js';
 import { ReactComponent as FrownOpenIcon } from '../assets/frown-open.svg';
 import { ReactComponent as PrintIcon } from '../assets/print.svg';
 
+import QRCode from 'qrcode.react';
+
 import Logo from './Logo.jsx';
 
 export default class Print extends Component {
@@ -101,13 +103,12 @@ export default class Print extends Component {
                   <div>Nothing to see here.</div>
                 </li>
               )}
-              {data.items.map(
-                ({ fields, folderId, login, name, notes, type }, index) =>
+              {data.items.map((item, index) => {
+                let { fields, folderId, login, name, notes, type } = item;
+                return (
                   type === 1 && (
                     <li
                       className={classNames({
-                        hidden:
-                          (data.folders.length && !foldersToPrint.includes(folderId)) || false,
                         'bg-white border border-gray-400 rounded mt-4 break-words shadow-md': true
                       })}
                       key={index}
@@ -126,7 +127,8 @@ export default class Print extends Component {
                         <span>{name}</span>
                       </div>
                       {login && (
-                        <div className="font-mono">
+                        <div className="font-mono item-wrapper">
+                          <div className="item-data">
                           {login.username && (
                             <div
                               className={classNames({
@@ -173,36 +175,43 @@ export default class Print extends Component {
                               </div>
                             ))}
                           {notes && (
-                            <div
-                              className={classNames({
-                                hidden: !dataToPrint['notes'],
-                                'px-4 py-2 border-t border-gray-400': true
-                              })}
-                            >
-                              <span className="text-gray-500">N – </span>
-                              <span>{notes}</span>
-                            </div>
-                          )}
-                          {fields &&
-                            fields.map((field, index) => (
                               <div
                                 className={classNames({
-                                  hidden: !dataToPrint['fields'],
+                                  hidden: !dataToPrint['notes'],
                                   'px-4 py-2 border-t border-gray-400': true
                                 })}
-                                key={index}
                               >
-                                <span className="text-gray-500">
-                                  {field.name && field.name + ' – '}
-                                </span>
-                                <span>{field.value}</span>
+                                <span className="text-gray-500">N – </span>
+                                <span>{notes}</span>
                               </div>
-                            ))}
+                            )}
+                            {fields &&
+                              fields.map((field, index) => (
+                                <div
+                                  className={classNames({
+                                    hidden: !dataToPrint['fields'],
+                                    'px-4 py-2 border-t border-gray-400': true
+                                  })}
+                                  key={index}
+                                >
+                                  <span className="text-gray-500">
+                                    {field.name && field.name + ' – '}
+                                  </span>
+                                  <span>{field.value}</span>
+                                </div>
+                              ))}
+                          </div>
+                          <div
+                            className={classNames('item-qr', { hidden: !dataToPrint['qrcodes'] })}
+                          >
+                            <QRCode value={JSON.stringify(item)} size={150} renderAs="svg" />
+                          </div>
                         </div>
                       )}
                     </li>
                   )
-              )}
+                );
+              })}
             </ul>
           </div>
         )}
