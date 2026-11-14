@@ -1,50 +1,60 @@
-import React, { Component, Fragment } from 'react';
+import { Component, Fragment, type ChangeEvent, type ContextType } from 'react';
 import classNames from 'classnames';
 import csv from 'csvtojson';
 
-import Context, { initialContext } from '../context/index.ts';
+import Context, { initialContext, type VaultData, type VaultItem } from '../context';
 
-import { ReactComponent as FileImportIcon } from '../assets/file-import.svg';
-import { ReactComponent as PrintIcon } from '../assets/print.svg';
-import { ReactComponent as ArrowLogo } from '../assets/arrow.svg';
-import { ReactComponent as TrashIcon } from '../assets/trash.svg';
+import FileImportIcon from '../assets/file-import.svg?react';
+import PrintIcon from '../assets/print.svg?react';
+import ArrowLogo from '../assets/arrow.svg?react';
+import TrashIcon from '../assets/trash.svg?react';
+
+type CsvRow = Record<string, string>;
 
 export default class Header extends Component {
   static contextType = Context;
+  declare context: ContextType<typeof Context>;
 
-  toggleFolder = id => {
+  toggleFolder = (id: string) => {
     const foldersToPrint = [...this.context.foldersToPrint];
     const index = foldersToPrint.indexOf(id);
 
-    foldersToPrint.includes(id) ? foldersToPrint.splice(index, 1) : foldersToPrint.push(id);
+    if (index === -1) {
+      foldersToPrint.push(id);
+    } else {
+      foldersToPrint.splice(index, 1);
+    }
 
     this.context.setContext({ foldersToPrint });
   };
 
-  readFile = event => {
+  readFile = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Some systems (notably Windows) report CSV files with a different MIME type
+    const isJson = file.type === 'application/json' || file.name.toLowerCase().endsWith('.json');
+    const isCsv = file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv');
+
     const reader = new FileReader();
-    const file = event.target.files[0];
 
-    reader.onload = event => {
-      if (file.type === 'application/json') {
-        let data = JSON.parse(event.target.result);
+    reader.onload = loadEvent => {
+      const text = loadEvent.target?.result as string;
 
-        if (!('folders' in data)) {
-            data.folders = [];
-        }
-
+      if (isJson) {
+        const parsed = JSON.parse(text);
+        const data: VaultData = { ...parsed, folders: parsed.folders ?? [] };
         const foldersToPrint = data.folders.map(({ id }) => id);
 
         this.context.setContext({ data, file, foldersToPrint });
       }
 
-      if (file.type === 'text/csv') {
+      if (isCsv) {
         csv()
-          .fromString(event.target.result)
-          .then(csvRow => {
-            const onlyUnique = (value, index, self) => {
-              return self.indexOf(value) === index;
-            };
+          .fromString(text)
+          .then((csvRow: CsvRow[]) => {
+            const onlyUnique = (value: string, index: number, self: string[]) =>
+              self.indexOf(value) === index;
 
             const foldersToPrint = csvRow
               .map(item => item.folder)
@@ -53,7 +63,7 @@ export default class Header extends Component {
 
             const folders = foldersToPrint.map(item => ({ id: item, name: item }));
 
-            const items = csvRow.map(item => ({
+            const items: VaultItem[] = csvRow.map(item => ({
               fields: [
                 {
                   name: '',
@@ -77,7 +87,7 @@ export default class Header extends Component {
               type: 1
             }));
 
-            const data = { folders, items };
+            const data: VaultData = { folders, items };
 
             this.context.setContext({ data, file, foldersToPrint });
           });
@@ -87,12 +97,13 @@ export default class Header extends Component {
   };
 
   resetState = () => {
-    document.querySelector('input[type=file]').value = null;
-    window.history.pushState(null, null, '/');
+    const input = document.querySelector<HTMLInputElement>('input[type=file]');
+    if (input) input.value = '';
+    window.history.pushState(null, '', import.meta.env.BASE_URL);
     this.context.setContext({ ...initialContext });
   };
 
-  toggleDataOption = option => {
+  toggleDataOption = (option: string) => {
     const dataToPrint = { ...this.context.dataToPrint };
     dataToPrint[option] = !dataToPrint[option];
     this.context.setContext({ dataToPrint });
@@ -108,7 +119,7 @@ export default class Header extends Component {
           <div
             className={classNames({
               hidden: file.size !== 0,
-              'flex justify-between items-center flex-col md:flex-row w-full': true
+              'flex justify-between items-center flex-col md:flex-row w-full': file.size == 0
             })}
           >
             <h1 className="font-thin text-2xl md:text-3xl mb-4 md:-mb-2 -m-1 flex items-center">

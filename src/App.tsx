@@ -1,27 +1,36 @@
-import React, { Component } from 'react';
+import { Component } from 'react';
 
-import Context, { initialContext } from './context/index.ts';
+import Context, {
+  initialContext,
+  type AppContext,
+  type AppState,
+  type FileInfo,
+  type SetContext,
+  type VaultData
+} from './context';
 
-import Header from './components/Header.tsx';
-import Intro from './components/Intro.tsx';
-import Print from './components/Print.tsx';
-import Footer from './components/Footer.tsx';
+import Header from './components/Header';
+import Intro from './components/Intro';
+import Print from './components/Print';
+import Footer from './components/Footer';
 
-import "./index.css";
+import './index.css';
 
-export default class App extends Component {
-  state = { ...initialContext };
-
-  setContext = (newContext, callback) => {
-    this.setState({ ...this.state, ...newContext }, callback);
+export default class App extends Component<object, AppContext> {
+  // Must be declared before `state`, which references it
+  setContext: SetContext = (newContext, callback) => {
+    // setState merges, so only the changed keys are needed
+    this.setState(newContext as AppState, callback);
   };
 
+  state: AppContext = { ...initialContext, setContext: this.setContext };
+
   demoData = async () => {
-    const response = await fetch('/demo.json');
-    const data = await response.json();
+    const response = await fetch(`${import.meta.env.BASE_URL}demo.json`);
+    const data: VaultData = await response.json();
     const foldersToPrint = data.folders.map(({ id }) => id);
 
-    const file = {
+    const file: FileInfo = {
       name: 'demo.json',
       lastModified: 1576401686010,
       size: 15941
@@ -31,8 +40,6 @@ export default class App extends Component {
   };
 
   componentDidMount() {
-    this.setState({ setContext: this.setContext });
-
     if (window.location.search.includes('demo')) {
       this.demoData();
     }

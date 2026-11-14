@@ -1,6 +1,6 @@
-import React, { Component } from 'react';
+import { Component, type ContextType } from 'react';
 
-import Context from '../context/index.ts';
+import Context from '../context';
 
 import Step1 from '../assets/step-1.png';
 import Step2 from '../assets/step-2.png';
@@ -8,12 +8,14 @@ import Step3 from '../assets/step-3.png';
 
 export default class Intro extends Component {
   static contextType = Context;
+  declare context: ContextType<typeof Context>;
 
   render() {
     const host = window.location.host;
+    const base = import.meta.env.BASE_URL; // "/" unless the app is served from a subpath
 
     if (this.context.file.size !== 0) {
-      return false;
+      return null;
     }
 
     return (
@@ -41,7 +43,7 @@ export default class Intro extends Component {
           <p className="mt-4">
             <strong className="font-bold">
               TL;DR: Do not import your personal vault on this site. Use the{' '}
-              <a className="font-bold" href="/?demo">
+              <a className="font-bold" href={`${base}?demo`}>
                 demo
               </a>
               , your own fake data, or fork the repo and run it yourself.
@@ -54,20 +56,20 @@ export default class Intro extends Component {
           </h2>
           <ul className="list-disc ml-4">
             <li>
-              <a className="inline-block" href={'//' + host + '/?demo'}>
-                {host}/?demo
+              <a className="inline-block" href={`//${host}${base}?demo`}>
+                {host + base}?demo
               </a>
               <span> (start here)</span>
             </li>
             <li>
-              <a className="inline-block" href={'//' + host + '/demo.json'}>
-                {host + '/demo.json'}
+              <a className="inline-block" href={`//${host}${base}demo.json`}>
+                {host + base}demo.json
               </a>
               <span> (vault export)</span>
             </li>
             <li>
-              <a className="inline-block" href={'//' + host + '/demo.pdf'}>
-                {host + '/demo.pdf'}
+              <a className="inline-block" href={`//${host}${base}demo.pdf`}>
+                {host + base}demo.pdf
               </a>
               <span> (pdf to print)</span>
             </li>
@@ -92,7 +94,7 @@ export default class Intro extends Component {
           <ol className="flex flex-col md:flex-row justify-center flex-wrap text-center md:-mt-8 flex-1 -mx-4">
             <li className="md:mt-6 flex-1">
               <div className="p-4">
-                <img alt="" className="rounded shadow-lg mx-auto" src={Step1} />
+                <img alt="" className="rounded-sm shadow-lg mx-auto" src={Step1} />
                 <h3 className="font-medium my-4">
                   Login to your <strong>Bitwarden Vault</strong>
                 </h3>
@@ -100,7 +102,7 @@ export default class Intro extends Component {
             </li>
             <li className="md:mt-6 flex-1">
               <div className="p-4">
-                <img alt="" className="rounded shadow-lg mx-auto" src={Step2} />
+                <img alt="" className="rounded-sm shadow-lg mx-auto" src={Step2} />
                 <h3 className="font-medium my-4">
                   Go to <strong>Tools</strong>
                 </h3>
@@ -108,7 +110,7 @@ export default class Intro extends Component {
             </li>
             <li className="md:mt-6 flex-1">
               <div className="p-4">
-                <img alt="" className="rounded shadow-lg mx-auto" src={Step3} />
+                <img alt="" className="rounded-sm shadow-lg mx-auto" src={Step3} />
                 <div className="my-4">
                   <h4 className="font-medium mb-2">
                     Go to <strong>Export Vault</strong>

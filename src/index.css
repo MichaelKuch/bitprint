@@ -1,6 +1,45 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+/* Replaces tailwind.config.js (theme.fontFamily) */
+@theme {
+  --font-body: Ubuntu, sans-serif;
+  --font-mono: 'Ubuntu Mono', monospace;
+}
+
+/*
+ * Element selectors go in the base layer. Tailwind v4 utilities are layered,
+ * and unlayered CSS beats layered CSS regardless of specificity, so without this
+ * `a { font-medium }` would override classes like `font-bold` on links.
+ */
+@layer base {
+  ::selection {
+    @apply text-white bg-blue-500;
+  }
+
+  html {
+    @apply bg-gray-100;
+
+    overflow-y: scroll;
+  }
+
+  a {
+    @apply font-medium underline;
+  }
+
+  a:hover {
+    @apply text-blue-500;
+  }
+
+  li {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+/*
+ * Everything below stays unlayered on purpose: in Tailwind v3 these rules came
+ * after the utilities and won on equal specificity, and they still do here.
+ */
 
 @media print {
   * {
@@ -62,7 +101,7 @@
   }
   100% {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0);
   }
 }
 
@@ -87,34 +126,12 @@
   }
 }
 
-::selection {
-  @apply text-white bg-blue-500;
-}
-
-html {
-  @apply bg-gray-100;
-
-  overflow-y: scroll;
-}
-
-a {
-  @apply font-medium underline;
-}
-
-a:hover {
-  @apply text-blue-500;
-}
-
-li {
-  page-break-inside: avoid;
-}
-
 .comma-list > *:not(:last-child)::after {
   content: ',\00a0';
 }
 
 .btn {
-  @apply inline-flex bg-gray-100 text-gray-700 px-4 py-2 rounded font-bold uppercase text-xs cursor-pointer overflow-hidden justify-center;
+  @apply inline-flex bg-gray-100 text-gray-700 px-4 py-2 rounded-sm font-bold uppercase text-xs cursor-pointer overflow-hidden justify-center;
 }
 
 .btn:hover {
@@ -155,6 +172,7 @@ li {
   width: 50%;
 }
 
+/* Keeps the old 3px blue focus ring (v4's built-in focus:ring is 1px) */
 .focus\:ring:focus {
   box-shadow: 0 0 0 3px #4299e1;
 }

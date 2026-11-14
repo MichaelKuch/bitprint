@@ -1,46 +1,54 @@
-import React, { Component } from 'react';
+import { Component, type ContextType } from 'react';
 import classNames from 'classnames';
+import { QRCodeSVG } from 'qrcode.react';
 
-import Context from '../context/index.js';
+import Context, { type Login } from '../context';
 
-import { ReactComponent as FrownOpenIcon } from '../assets/frown-open.svg';
-import { ReactComponent as PrintIcon } from '../assets/print.svg';
+import FrownOpenIcon from '../assets/frown-open.svg?react';
+import PrintIcon from '../assets/print.svg?react';
 
-import QRCode from 'qrcode.react';
-
-import Logo from './Logo.jsx';
+import Logo from './Logo';
 
 export default class Print extends Component {
   static contextType = Context;
+  declare context: ContextType<typeof Context>;
 
   formatDate() {
-    const date = new Date(this.context.file.lastModified);
+    // lastModified is missing on some sources (e.g. the demo file before it is set)
+    const date = new Date(this.context.file.lastModified ?? Date.now());
     return date.toLocaleDateString() + ' – ' + date.toLocaleTimeString();
   }
 
-  getHostName = login => {
+  getHostName = (login: Login): string | false => {
     try {
-      const hostname = new URL(login.uris[0].uri).hostname;
-      let _hostname = hostname.split('.');
-      return _hostname[_hostname.length - 2] + '.' + _hostname[_hostname.length - 1];
+      const hostname = new URL(login.uris![0].uri).hostname;
+      const parts = hostname.split('.');
+      return parts[parts.length - 2] + '.' + parts[parts.length - 1];
     } catch {
       return false;
     }
   };
 
+  // Folder filtering applies as soon as the vault has folders
+  hasFolderFilter = () => {
+    const { data, foldersToPrint } = this.context;
+    return foldersToPrint.length > 0 || data.folders.length > 0;
+  };
+
   getPrintItemLength = () => {
     const { data, foldersToPrint } = this.context;
 
-    if (foldersToPrint.length || data.folders.length) {
-      return data.items.filter(item => foldersToPrint.includes(item.folderId)).length;
-    } else {
-      return data.items.length;
+    if (this.hasFolderFilter()) {
+      return data.items.filter(item => item.folderId && foldersToPrint.includes(item.folderId))
+        .length;
     }
+    return data.items.length;
   };
 
   render() {
-    const { dataToPrint, foldersToPrint, data, file } = this.context;
+    const { dataToPrint, foldersToPrint, data } = this.context;
     const dataToPrintKeys = Object.keys(dataToPrint);
+    const filterByFolder = this.hasFolderFilter();
 
     return (
       <div>
@@ -51,12 +59,14 @@ export default class Print extends Component {
                 <h1
                   spellCheck="false"
                   suppressContentEditableWarning={true}
-                  onKeyPress={event => {
-                    (event.nativeEvent.keyCode === 13 || event.nativeEvent.which === 13) &&
-                      event.target.blur();
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      event.currentTarget.blur();
+                    }
                   }}
                   contentEditable="true"
-                  className="focus:ring focus:border-transparent outline-none px-1 -ml-1 rounded min-w-full font-bold text-2xl text-gray-900 border-b border-blue-500 border-dashed hover:bg-gray-400 whitespace-nowrap flex"
+                  className="focus:ring focus:border-transparent outline-hidden px-1 -ml-1 rounded-sm min-w-full font-bold text-2xl text-gray-900 border-b border-blue-500 border-dashed hover:bg-gray-400 whitespace-nowrap flex"
                   style={{ minWidth: '185px' }}
                   title="Edit title"
                 >
@@ -67,7 +77,7 @@ export default class Print extends Component {
                 </span>
               </div>
               <div className="flex justify-between items-baseline">
-                <span>{this.formatDate(file.lastModified)}</span>
+                <span>{this.formatDate()}</span>
                 <span>
                   <span className="comma-list">
                     <span>Names</span>
@@ -104,31 +114,32 @@ export default class Print extends Component {
                 </li>
               )}
               {data.items.map((item, index) => {
-                let { fields, folderId, login, name, notes, type } = item;
+                const { fields, folderId, login, name, notes, type } = item;
+
+                if (type !== 1) return null;
+                if (filterByFolder && !(folderId && foldersToPrint.includes(folderId))) {
+                  return null;
+                }
+
                 return (
-                  type === 1 && (
-                    <li
-                      className={classNames({
-                        'bg-white border border-gray-400 rounded mt-4 break-words shadow-md': true
-                      })}
-                      key={index}
-                    >
-                      <div className="px-4 py-2 font-bold flex items-center">
-                        {login.uris && (
-                          <Logo
-                            alt={name}
-                            className={classNames({
-                              hidden: !dataToPrint['logos'],
-                              'inline-block mr-2 h-5 w-5 text-blue-500': true
-                            })}
-                            src={`https://icons.bitwarden.net/${this.getHostName(login)}/icon.png`}
-                          />
-                        )}
-                        <span>{name}</span>
-                      </div>
-                      {login && (
-                        <div className="font-mono item-wrapper">
-                          <div className="item-data">
+                  <li
+                    className="bg-white border border-gray-400 rounded-sm mt-4 wrap-break-word shadow-md"
+                    key={index}
+                  >
+                    <div className="px-4 py-2 font-bold flex items-center">
+                      {dataToPrint['logos'] && login?.uris && (
+                        <Logo
+                          key={this.getHostName(login) || name}
+                          alt={name}
+                          className="inline-block mr-2 h-5 w-5 text-blue-500"
+                          src={`https://icons.bitwarden.net/${this.getHostName(login)}/icon.png`}
+                        />
+                      )}
+                      <span>{name}</span>
+                    </div>
+                    {login && (
+                      <div className="font-mono item-wrapper">
+                        <div className="item-data">
                           {login.username && (
                             <div
                               className={classNames({
@@ -163,53 +174,50 @@ export default class Print extends Component {
                             </div>
                           )}
                           {login.uris &&
-                            login.uris.map((url, index) => (
+                            login.uris.map((url, uriIndex) => (
                               <div
                                 className={classNames({
                                   hidden: !dataToPrint['uris'],
                                   'px-4 py-2 border-t border-gray-400': true
                                 })}
-                                key={index}
+                                key={uriIndex}
                               >
                                 <span className="text-gray-500">{url.uri}</span>
                               </div>
                             ))}
                           {notes && (
+                            <div
+                              className={classNames({
+                                hidden: !dataToPrint['notes'],
+                                'px-4 py-2 border-t border-gray-400': true
+                              })}
+                            >
+                              <span className="text-gray-500">N – </span>
+                              <span>{notes}</span>
+                            </div>
+                          )}
+                          {fields &&
+                            fields.map((field, fieldIndex) => (
                               <div
                                 className={classNames({
-                                  hidden: !dataToPrint['notes'],
+                                  hidden: !dataToPrint['fields'],
                                   'px-4 py-2 border-t border-gray-400': true
                                 })}
+                                key={fieldIndex}
                               >
-                                <span className="text-gray-500">N – </span>
-                                <span>{notes}</span>
+                                <span className="text-gray-500">
+                                  {field.name && field.name + ' – '}
+                                </span>
+                                <span>{field.value}</span>
                               </div>
-                            )}
-                            {fields &&
-                              fields.map((field, index) => (
-                                <div
-                                  className={classNames({
-                                    hidden: !dataToPrint['fields'],
-                                    'px-4 py-2 border-t border-gray-400': true
-                                  })}
-                                  key={index}
-                                >
-                                  <span className="text-gray-500">
-                                    {field.name && field.name + ' – '}
-                                  </span>
-                                  <span>{field.value}</span>
-                                </div>
-                              ))}
-                          </div>
-                          <div
-                            className={classNames('item-qr', { hidden: !dataToPrint['qrcodes'] })}
-                          >
-                            <QRCode value={JSON.stringify(item)} size={150} renderAs="svg" />
-                          </div>
+                            ))}
                         </div>
-                      )}
-                    </li>
-                  )
+                        <div className={classNames('item-qr', { hidden: !dataToPrint['qrcodes'] })}>
+                          <QRCodeSVG value={JSON.stringify(item)} size={150} />
+                        </div>
+                      </div>
+                    )}
+                  </li>
                 );
               })}
             </ul>

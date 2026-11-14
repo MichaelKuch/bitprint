@@ -1,25 +1,19 @@
-import React, { Component } from 'react';
-import PropTypes from 'prop-types';
+import { useState } from 'react';
 
-import { ReactComponent as ErrorIcon } from '../assets/exclamation-circle.svg';
+import ErrorIcon from '../assets/exclamation-circle.svg?react';
 
-export default class Logo extends Component {
-  state = { error: false };
-
-  render() {
-    const { alt, src, ...props } = this.props;
-
-    return this.state.error ? (
-      <ErrorIcon {...props} />
-    ) : (
-      <img
-        alt={alt}
-        src={this.props.src}
-        onError={() => this.setState({ error: true })}
-        {...props}
-      />
-    );
-  }
+interface LogoProps {
+  alt: string;
+  src: string;
+  className?: string;
 }
 
-Logo.propTypes = { src: PropTypes.string };
+export default function Logo({ alt, src, className }: LogoProps) {
+  const [error, setError] = useState(false);
+
+  return error ? (
+    <ErrorIcon className={className} />
+  ) : (
+    <img alt={alt} src={src} className={className} onError={() => setError(true)} />
+  );
+}

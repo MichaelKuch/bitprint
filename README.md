@@ -10,8 +10,8 @@ In short, **absolutely do not** import your personal vault on the demo site. Ins
 
 ## Requirements
 
-- Node.js 16
-- npm 8
+- Node.js >=22.12.0
+- npm 11
 
 ## Quick Start
 
@@ -36,8 +36,15 @@ This file contains all of your passwords and secrets, and could be jeopardized b
 
 - **Client:** http://localhost:3000
 
+Commands:
+
 ```
-$ npm start
+npm start            # dev server on http://localhost:3000 (alias: npm run dev)
+npm run build        # tsc --noEmit, then vite build → dist/
+npm run typecheck    # type-check only
+npm run serve        # preview the production build
+npm run format       # prettier over css/js/json/md/ts/tsx
+
 ```
 
 ## Environment Variables
@@ -49,13 +56,13 @@ Located in the [.env](.env) file. Follow [.env.example](.env.example) as an exam
 **Build Client**
 
 ```
-$ yarn build
+$ npm run build
 ```
 
 **Serve Client**
 
 ```
-$ yarn serve
+$ npm run serve
 ```
 
 # License
