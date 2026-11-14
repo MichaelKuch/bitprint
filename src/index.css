@@ -199,10 +199,13 @@ input[type='file'] {
   align-content: space-between;
 }
 
+/* Takes whatever the QR code leaves, i.e. the full width when it is switched off */
 .item-data {
-  width: calc(100% - 150px);
+  flex: 1;
+  min-width: 0;
 }
 
 .item-qr {
+  flex-shrink: 0;
   align-self: flex-end;
 }
