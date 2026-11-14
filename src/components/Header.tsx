@@ -1,15 +1,13 @@
 import { Component, Fragment, type ChangeEvent, type ContextType } from 'react';
 import classNames from 'classnames';
-import csv from 'csvtojson';
 
-import Context, { initialContext, type VaultData, type VaultItem } from '../context';
+import Context, { initialContext } from '../context';
+import { folderOptions, readVault, VaultImportError } from '../vault';
 
 import FileImportIcon from '../assets/file-import.svg?react';
 import PrintIcon from '../assets/print.svg?react';
 import ArrowLogo from '../assets/arrow.svg?react';
 import TrashIcon from '../assets/trash.svg?react';
-
-type CsvRow = Record<string, string>;
 
 export default class Header extends Component {
   static contextType = Context;
@@ -28,72 +26,24 @@ export default class Header extends Component {
     this.context.setContext({ foldersToPrint });
   };
 
-  readFile = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  readFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const input = event.target;
+    const file = input.files?.[0];
     if (!file) return;
 
-    // Some systems (notably Windows) report CSV files with a different MIME type
-    const isJson = file.type === 'application/json' || file.name.toLowerCase().endsWith('.json');
-    const isCsv = file.type === 'text/csv' || file.name.toLowerCase().endsWith('.csv');
+    try {
+      const data = await readVault(file);
+      const foldersToPrint = folderOptions(data).map(({ id }) => id);
 
-    const reader = new FileReader();
+      this.context.setContext({ data, file, foldersToPrint, error: null });
+    } catch (error) {
+      // Lets the same file be picked again after it has been fixed
+      input.value = '';
 
-    reader.onload = loadEvent => {
-      const text = loadEvent.target?.result as string;
-
-      if (isJson) {
-        const parsed = JSON.parse(text);
-        const data: VaultData = { ...parsed, folders: parsed.folders ?? [] };
-        const foldersToPrint = data.folders.map(({ id }) => id);
-
-        this.context.setContext({ data, file, foldersToPrint });
-      }
-
-      if (isCsv) {
-        csv()
-          .fromString(text)
-          .then((csvRow: CsvRow[]) => {
-            const onlyUnique = (value: string, index: number, self: string[]) =>
-              self.indexOf(value) === index;
-
-            const foldersToPrint = csvRow
-              .map(item => item.folder)
-              .filter(onlyUnique)
-              .filter(item => item !== '');
-
-            const folders = foldersToPrint.map(item => ({ id: item, name: item }));
-
-            const items: VaultItem[] = csvRow.map(item => ({
-              fields: [
-                {
-                  name: '',
-                  value: item.fields
-                }
-              ],
-              folderId: item.folder,
-              name: item.name,
-              notes: item.notes,
-              login: {
-                username: item.login_username,
-                password: item.login_password,
-                totp: item.login_totp,
-                uris: [
-                  {
-                    match: null,
-                    uri: item.login_uri
-                  }
-                ]
-              },
-              type: 1
-            }));
-
-            const data: VaultData = { folders, items };
-
-            this.context.setContext({ data, file, foldersToPrint });
-          });
-      }
-    };
-    reader.readAsText(file);
+      this.context.setContext({
+        error: error instanceof VaultImportError ? error.message : 'The file could not be read.'
+      });
+    }
   };
 
   resetState = () => {
@@ -112,6 +62,7 @@ export default class Header extends Component {
   render() {
     const { dataToPrint, foldersToPrint, data, file } = this.context;
     const dataToPrintKeys = Object.keys(dataToPrint);
+    const folders = folderOptions(data);
 
     return (
       <div className="bg-gray-900 no-print text-white py-6 xl:h-24">
@@ -122,7 +73,7 @@ export default class Header extends Component {
               'flex justify-between items-center flex-col md:flex-row w-full': file.size == 0
             })}
           >
-            <h1 className="font-thin text-2xl md:text-3xl mb-4 md:-mb-2 -m-1 flex items-center">
+            <h1 className="font-light text-2xl md:text-3xl mb-4 md:-mb-2 -m-1 flex items-center">
               <PrintIcon className="h-6 mr-2 text-blue-500" />
               <span>BitPrint</span>
             </h1>
@@ -137,6 +88,7 @@ export default class Header extends Component {
                 </span>
                 <input
                   className="opacity-0 absolute h-full w-full inset-0"
+                  accept=".json,.csv,application/json,text/csv"
                   onChange={this.readFile}
                   type="file"
                 />
@@ -146,11 +98,11 @@ export default class Header extends Component {
           {data.items.length > 0 && (
             <div className="flex flex-col xl:flex-row -mt-2 w-full">
               <div className="flex flex-col lg:flex-row flex-1">
-                {data.folders.length > 0 && (
+                {folders.length > 0 && (
                   <div className="xl:mt-auto">
                     <label className="label">Folders</label>
                     <ul className="flex flex-wrap -mx-2">
-                      {data.folders.map(({ id, name }) => (
+                      {folders.map(({ id, name }) => (
                         <li
                           className={classNames({
                             'mb-4 flex-1 px-2 lg:mb-0': true,
@@ -185,7 +137,7 @@ export default class Header extends Component {
                 <div
                   className={classNames({
                     'lg:mt-auto flex-1 lg:pl-8 xl:px-8': true,
-                    'lg:-ml-8': data.folders.length === 0
+                    'lg:-ml-8': folders.length === 0
                   })}
                 >
                   <label className="label">Data</label>

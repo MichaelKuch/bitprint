@@ -1,13 +1,14 @@
 import { Component, type ContextType } from 'react';
 import classNames from 'classnames';
-import { QRCodeSVG } from 'qrcode.react';
 
-import Context, { type Login } from '../context';
+import Context, { type VaultItem } from '../context';
+import { folderKey, getIconHostname } from '../vault';
 
 import FrownOpenIcon from '../assets/frown-open.svg?react';
 import PrintIcon from '../assets/print.svg?react';
 
 import Logo from './Logo';
+import QrCode from './QrCode';
 
 export default class Print extends Component {
   static contextType = Context;
@@ -19,36 +20,36 @@ export default class Print extends Component {
     return date.toLocaleDateString() + ' – ' + date.toLocaleTimeString();
   }
 
-  getHostName = (login: Login): string | false => {
-    try {
-      const hostname = new URL(login.uris![0].uri).hostname;
-      const parts = hostname.split('.');
-      return parts[parts.length - 2] + '.' + parts[parts.length - 1];
-    } catch {
-      return false;
-    }
-  };
-
   // Folder filtering applies as soon as the vault has folders
-  hasFolderFilter = () => {
+  isInPrintedFolder = (item: VaultItem) => {
     const { data, foldersToPrint } = this.context;
-    return foldersToPrint.length > 0 || data.folders.length > 0;
+    return data.folders.length === 0 || foldersToPrint.includes(folderKey(item));
   };
 
-  getPrintItemLength = () => {
-    const { data, foldersToPrint } = this.context;
+  getPrintItemLength = () =>
+    this.context.data.items.filter(item => item.type === 1 && this.isInPrintedFolder(item)).length;
 
-    if (this.hasFolderFilter()) {
-      return data.items.filter(item => item.folderId && foldersToPrint.includes(item.folderId))
-        .length;
-    }
-    return data.items.length;
+  // Only what is switched on is encoded, so the QR code never reveals more than the page
+  getQrValue = ({ fields, login, name, notes }: VaultItem) => {
+    const { dataToPrint } = this.context;
+    const pick = <T,>(key: string, value: T) => (dataToPrint[key] ? value : undefined);
+
+    return JSON.stringify({
+      name,
+      login: login && {
+        username: pick('username', login.username),
+        password: pick('password', login.password),
+        totp: pick('totp', login.totp),
+        uris: pick('uris', login.uris)
+      },
+      notes: pick('notes', notes),
+      fields: pick('fields', fields)
+    });
   };
 
   render() {
     const { dataToPrint, foldersToPrint, data } = this.context;
     const dataToPrintKeys = Object.keys(dataToPrint);
-    const filterByFolder = this.hasFolderFilter();
 
     return (
       <div>
@@ -114,12 +115,13 @@ export default class Print extends Component {
                 </li>
               )}
               {data.items.map((item, index) => {
-                const { fields, folderId, login, name, notes, type } = item;
+                const { fields, login, name, notes, type } = item;
 
                 if (type !== 1) return null;
-                if (filterByFolder && !(folderId && foldersToPrint.includes(folderId))) {
-                  return null;
-                }
+                if (!this.isInPrintedFolder(item)) return null;
+
+                const iconHostname = getIconHostname(login?.uris?.[0]?.uri);
+                const qrValue = dataToPrint['qrcodes'] ? this.getQrValue(item) : null;
 
                 return (
                   <li
@@ -129,10 +131,14 @@ export default class Print extends Component {
                     <div className="px-4 py-2 font-bold flex items-center">
                       {dataToPrint['logos'] && login?.uris && (
                         <Logo
-                          key={this.getHostName(login) || name}
+                          key={iconHostname ?? name}
                           alt={name}
                           className="inline-block mr-2 h-5 w-5 text-blue-500"
-                          src={`https://icons.bitwarden.net/${this.getHostName(login)}/icon.png`}
+                          src={
+                            iconHostname
+                              ? `https://icons.bitwarden.net/${iconHostname}/icon.png`
+                              : undefined
+                          }
                         />
                       )}
                       <span>{name}</span>
@@ -212,9 +218,11 @@ export default class Print extends Component {
                               </div>
                             ))}
                         </div>
-                        <div className={classNames('item-qr', { hidden: !dataToPrint['qrcodes'] })}>
-                          <QRCodeSVG value={JSON.stringify(item)} size={150} />
-                        </div>
+                        {qrValue && (
+                          <div className="item-qr">
+                            <QrCode key={qrValue} value={qrValue} size={150} />
+                          </div>
+                        )}
                       </div>
                     )}
                   </li>
