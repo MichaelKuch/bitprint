@@ -1,8 +1,6 @@
-import csv from 'csvtojson';
-
 import type { Folder, VaultData, VaultItem } from './context';
 
-type CsvRow = Record<string, string>;
+type CsvRow = Record<string, string | undefined>;
 
 /** Pseudo folder id for items that are not in any folder */
 export const NO_FOLDER = '__no_folder__';
@@ -48,7 +46,7 @@ export function getIconHostname(uri: string | undefined): string | null {
   }
 }
 
-function parseJson(text: string): VaultData {
+export function parseJson(text: string): VaultData {
   let parsed: unknown;
 
   try {
@@ -80,26 +78,26 @@ function parseJson(text: string): VaultData {
 }
 
 async function parseCsv(text: string): Promise<VaultData> {
-  let rows: CsvRow[];
+  // Loaded on demand, so JSON imports never download the CSV parser
+  const { default: Papa } = await import('papaparse');
 
-  try {
-    rows = await csv().fromString(text);
-  } catch {
-    throw new VaultImportError('This file is not valid CSV.');
-  }
+  // Values are kept exactly as exported (no trimming: spaces can be part of a password)
+  const { data: rows, meta } = Papa.parse<CsvRow>(text, { header: true, skipEmptyLines: true });
 
-  if (rows.length > 0 && !('name' in rows[0])) {
+  if (!meta.fields?.includes('name')) {
     throw new VaultImportError('This does not look like a Bitwarden vault export.');
   }
 
-  const folderNames = [...new Set(rows.map(row => row.folder))].filter(Boolean);
+  const folderNames = [...new Set(rows.map(row => row.folder))].filter((name): name is string =>
+    Boolean(name)
+  );
   const folders = folderNames.map(name => ({ id: name, name }));
 
   const items: VaultItem[] = rows.map(row => ({
     // Empty columns must not become entries, or they print as blank rows
     fields: row.fields ? [{ name: '', value: row.fields }] : [],
     folderId: row.folder,
-    name: row.name,
+    name: row.name ?? '',
     notes: row.notes,
     login: {
       username: row.login_username,

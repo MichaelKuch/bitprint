@@ -4,9 +4,7 @@ import Context, {
   initialContext,
   type AppContext,
   type AppState,
-  type FileInfo,
-  type SetContext,
-  type VaultData
+  type SetContext
 } from './context';
 
 import Header from './components/Header';
@@ -15,7 +13,7 @@ import Print from './components/Print';
 import Footer from './components/Footer';
 
 import ErrorIcon from './assets/exclamation-circle.svg?react';
-import { folderOptions } from './vault';
+import { folderOptions, parseJson } from './vault';
 
 import './index.css';
 
@@ -29,32 +27,40 @@ export default class App extends Component<object, AppContext> {
   state: AppContext = { ...initialContext, setContext: this.setContext };
 
   demoData = async () => {
-    const response = await fetch(`${import.meta.env.BASE_URL}demo.json`);
-    const data: VaultData = await response.json();
-    const foldersToPrint = folderOptions(data).map(({ id }) => id);
+    try {
+      const response = await fetch(`${import.meta.env.BASE_URL}demo.json`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-    const file: FileInfo = {
-      name: 'demo.json',
-      lastModified: 1576401686010,
-      size: 15941
-    };
+      // Same validation as an imported file
+      const text = await response.text();
+      const data = parseJson(text);
+      const foldersToPrint = folderOptions(data).map(({ id }) => id);
 
-    this.setState({ data, file, foldersToPrint });
+      const file = {
+        name: 'demo.json',
+        lastModified: 1576401686010,
+        size: new Blob([text]).size
+      };
+
+      this.setState({ data, file, foldersToPrint, error: null });
+    } catch {
+      this.setState({ error: 'The demo vault could not be loaded.' });
+    }
   };
 
   componentDidMount() {
-    if (window.location.search.includes('demo')) {
+    if (new URLSearchParams(window.location.search).has('demo')) {
       this.demoData();
     }
   }
 
   render() {
     return (
-      <Context.Provider value={this.state}>
-        <main className="font-body leading-relaxed min-h-screen flex flex-col">
+      <Context value={this.state}>
+        <main className="leading-relaxed min-h-screen flex flex-col">
           <Header />
           {this.state.error && (
-            <div className="container mt-4 md:mt-8 w-full no-print" role="alert">
+            <div className="container mt-4 md:mt-8 w-full print:hidden" role="alert">
               <p className="flex items-center bg-red-100 border border-red-400 text-red-800 rounded-sm px-4 py-3">
                 <ErrorIcon className="h-4 w-4 mr-2 shrink-0" />
                 <span>{this.state.error}</span>
@@ -65,7 +71,7 @@ export default class App extends Component<object, AppContext> {
           <Print />
           <Footer />
         </main>
-      </Context.Provider>
+      </Context>
     );
   }
 }

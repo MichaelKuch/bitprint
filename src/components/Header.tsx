@@ -1,4 +1,4 @@
-import { Component, Fragment, type ChangeEvent, type ContextType } from 'react';
+import { Component, Fragment, createRef, type ChangeEvent, type ContextType } from 'react';
 import classNames from 'classnames';
 
 import Context, { initialContext } from '../context';
@@ -12,6 +12,8 @@ import TrashIcon from '../assets/trash.svg?react';
 export default class Header extends Component {
   static contextType = Context;
   declare context: ContextType<typeof Context>;
+
+  fileInput = createRef<HTMLInputElement>();
 
   toggleFolder = (id: string) => {
     const foldersToPrint = [...this.context.foldersToPrint];
@@ -47,8 +49,7 @@ export default class Header extends Component {
   };
 
   resetState = () => {
-    const input = document.querySelector<HTMLInputElement>('input[type=file]');
-    if (input) input.value = '';
+    if (this.fileInput.current) this.fileInput.current.value = '';
     window.history.pushState(null, '', import.meta.env.BASE_URL);
     this.context.setContext({ ...initialContext });
   };
@@ -65,7 +66,7 @@ export default class Header extends Component {
     const folders = folderOptions(data);
 
     return (
-      <div className="bg-gray-900 no-print text-white py-6 xl:h-24">
+      <div className="app-header bg-gray-900 print:hidden text-white py-6 xl:h-24">
         <div className="container relative h-full flex items-center w-full">
           <div
             className={classNames({
@@ -90,6 +91,7 @@ export default class Header extends Component {
                   className="opacity-0 absolute h-full w-full inset-0"
                   accept=".json,.csv,application/json,text/csv"
                   onChange={this.readFile}
+                  ref={this.fileInput}
                   type="file"
                 />
               </div>
@@ -105,21 +107,21 @@ export default class Header extends Component {
                       {folders.map(({ id, name }) => (
                         <li
                           className={classNames({
-                            'mb-4 flex-1 px-2 lg:mb-0': true,
+                            'relative mb-4 flex-1 px-2 lg:mb-0': true,
                             '-active': foldersToPrint.includes(id)
                           })}
                           key={id}
                         >
                           <input
                             checked={foldersToPrint.includes(id)}
-                            className="hidden"
-                            id={id}
+                            className="peer sr-only"
+                            id={`folder-${id}`}
                             onChange={() => this.toggleFolder(id)}
                             type="checkbox"
                           />
                           <label
-                            className="btn w-full"
-                            htmlFor={id}
+                            className="btn w-full peer-focus-visible:ring-3 peer-focus-visible:ring-blue-300"
+                            htmlFor={`folder-${id}`}
                             title={
                               (foldersToPrint.includes(id) ? 'Hide ' : 'Show ') +
                               name.charAt(0).toUpperCase() +
@@ -145,21 +147,21 @@ export default class Header extends Component {
                     {dataToPrintKeys.map(option => (
                       <li
                         className={classNames({
-                          'mb-4 flex-1 px-2 lg:mb-0': true,
+                          'relative mb-4 flex-1 px-2 lg:mb-0': true,
                           '-active': dataToPrint[option]
                         })}
                         key={option}
                       >
                         <input
                           checked={dataToPrint[option]}
-                          className="hidden"
-                          id={option}
+                          className="peer sr-only"
+                          id={`data-${option}`}
                           onChange={() => this.toggleDataOption(option)}
                           type="checkbox"
                         />
                         <label
-                          className="btn w-full"
-                          htmlFor={option}
+                          className="btn w-full peer-focus-visible:ring-3 peer-focus-visible:ring-blue-300"
+                          htmlFor={`data-${option}`}
                           title={
                             (dataToPrint[option] ? 'Hide ' : 'Show ') +
                             option.charAt(0).toUpperCase() +

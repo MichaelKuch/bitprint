@@ -15,6 +15,12 @@ export default function Logo({ alt, src, className }: LogoProps) {
   return error || !src ? (
     <ErrorIcon className={className} />
   ) : (
-    <img alt={alt} src={src} className={className} onError={() => setError(true)} />
+    <img
+      alt={alt}
+      src={src}
+      className={className}
+      referrerPolicy="no-referrer"
+      onError={() => setError(true)}
+    />
   );
 }

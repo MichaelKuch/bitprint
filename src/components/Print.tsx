@@ -67,7 +67,7 @@ export default class Print extends Component {
                     }
                   }}
                   contentEditable="true"
-                  className="focus:ring focus:border-transparent outline-hidden px-1 -ml-1 rounded-sm min-w-full font-bold text-2xl text-gray-900 border-b border-blue-500 border-dashed hover:bg-gray-400 whitespace-nowrap flex"
+                  className="focus:ring-3 focus:ring-blue-500 focus:border-transparent outline-hidden px-1 -ml-1 rounded-sm min-w-full font-bold text-2xl text-gray-900 border-b border-blue-500 border-dashed hover:bg-gray-400 whitespace-nowrap flex"
                   style={{ minWidth: '185px' }}
                   title="Edit title"
                 >
@@ -94,7 +94,7 @@ export default class Print extends Component {
                 </span>
               </div>
             </div>
-            <div className="fixed bottom-0 right-0 w-full no-print pointer-events-none">
+            <div className="fixed bottom-0 right-0 w-full print:hidden pointer-events-none">
               <div className="container flex">
                 <span className="ml-auto inline-flex p-4 md:p-8 slide-in-bottom">
                   <button
