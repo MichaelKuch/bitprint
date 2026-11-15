@@ -52,7 +52,6 @@ export interface AppState {
   error: string | null;
   file: FileInfo;
   foldersToPrint: string[];
-  loading: boolean;
 }
 
 export type SetContext = (newContext: Partial<AppState>, callback?: () => void) => void;
@@ -84,8 +83,7 @@ export const initialContext: AppState = {
     name: '',
     size: 0
   },
-  foldersToPrint: [],
-  loading: true
+  foldersToPrint: []
 };
 
 const Context = createContext<AppContext>({

@@ -1,9 +1,24 @@
 @import 'tailwindcss';
 
-/* Replaces tailwind.config.js (theme.fontFamily) */
+/* Self-hosted so that no request leaves the page for fonts */
+@import '@fontsource/ubuntu/300.css';
+@import '@fontsource/ubuntu/400.css';
+@import '@fontsource/ubuntu/400-italic.css';
+@import '@fontsource/ubuntu/500.css';
+@import '@fontsource/ubuntu/700.css';
+@import '@fontsource/ubuntu-mono/400.css';
+@import '@fontsource/ubuntu-mono/700.css';
+
+/* Replaces tailwind.config.js. Overriding the defaults makes these the page fonts. */
 @theme {
-  --font-body: Ubuntu, sans-serif;
+  --font-sans: Ubuntu, sans-serif;
   --font-mono: 'Ubuntu Mono', monospace;
+}
+
+/* Extends the built-in container (which only sets the breakpoint max-widths) */
+@utility container {
+  margin-inline: auto;
+  padding-inline: 1rem;
 }
 
 /*
@@ -32,7 +47,6 @@
 
   li {
     break-inside: avoid;
-    page-break-inside: avoid;
   }
 }
 
@@ -52,10 +66,6 @@
 
   main {
     @apply -mt-8;
-  }
-  .no-print,
-  .no-print * {
-    display: none !important;
   }
 
   h1[contenteditable] {
@@ -113,12 +123,12 @@
   animation: 1s 0s 1 slideInBottom;
 }
 
-.bg-gray-900.no-print {
+.app-header {
   transition: 0.3s;
 }
 
 @media (max-height: 500px) {
-  .bg-gray-900.no-print {
+  .app-header {
     @apply -mt-48;
   }
   .btn.-rounded.-lg {
@@ -130,51 +140,41 @@
   content: ',\00a0';
 }
 
-.btn {
-  @apply inline-flex bg-gray-100 text-gray-700 px-4 py-2 rounded-sm font-bold uppercase text-xs cursor-pointer overflow-hidden justify-center;
-}
+/* Component classes sit below the utilities, so e.g. `btn w-full flex` works as expected */
+@layer components {
+  .btn {
+    @apply inline-flex bg-gray-100 text-gray-700 px-4 py-2 rounded-sm font-bold uppercase text-xs cursor-pointer overflow-hidden justify-center;
+  }
 
-.btn:hover {
-  @apply bg-gray-300 text-gray-800;
-}
+  .btn:hover {
+    @apply bg-gray-300 text-gray-800;
+  }
 
-.btn.-lg {
-  @apply px-6 py-4 text-sm;
-}
+  .btn.-lg {
+    @apply px-6 py-4 text-sm;
+  }
 
-.btn.-rounded {
-  @apply rounded-full;
-}
+  .btn.-rounded {
+    @apply rounded-full;
+  }
 
-.-active .btn,
-.-active.btn {
-  @apply bg-blue-500 text-white;
-}
+  .-active .btn,
+  .-active.btn {
+    @apply bg-blue-500 text-white;
+  }
 
-.-active .btn:hover,
-.-active.btn:hover {
-  @apply bg-blue-600;
-}
+  .-active .btn:hover,
+  .-active.btn:hover {
+    @apply bg-blue-600;
+  }
 
-.btn.warning:hover {
-  @apply bg-red-600 text-white;
-}
+  .btn.warning:hover {
+    @apply bg-red-600 text-white;
+  }
 
-.label {
-  @apply uppercase text-xs mb-1 inline-block;
-}
-
-.container {
-  @apply mx-auto px-4;
-}
-
-.w-half {
-  width: 50%;
-}
-
-/* Keeps the old 3px blue focus ring (v4's built-in focus:ring is 1px) */
-.focus\:ring:focus {
-  box-shadow: 0 0 0 3px #4299e1;
+  .label {
+    @apply uppercase text-xs mb-1 inline-block;
+  }
 }
 
 input[type='file'] {
@@ -190,10 +190,13 @@ input[type='file'] {
   align-content: space-between;
 }
 
+/* Takes whatever the QR code leaves, i.e. the full width when it is switched off */
 .item-data {
-  width: calc(100% - 150px);
+  flex: 1;
+  min-width: 0;
 }
 
 .item-qr {
+  flex-shrink: 0;
   align-self: flex-end;
 }

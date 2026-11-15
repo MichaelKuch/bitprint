@@ -10,7 +10,7 @@ In short, **absolutely do not** import your personal vault on the demo site. Ins
 
 ## Requirements
 
-- Node.js >=22.12.0
+- Node.js >=24
 - npm 11
 
 ## Quick Start
