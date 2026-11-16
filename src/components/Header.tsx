@@ -50,7 +50,8 @@ export default class Header extends Component {
 
   resetState = () => {
     if (this.fileInput.current) this.fileInput.current.value = '';
-    window.history.pushState(null, '', import.meta.env.BASE_URL);
+    // Drops `?demo`. The pathname rather than BASE_URL, so it also works from file://
+    window.history.pushState(null, '', window.location.pathname);
     this.context.setContext({ ...initialContext });
   };
 

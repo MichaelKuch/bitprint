@@ -41,6 +41,7 @@ Commands:
 ```
 npm start            # dev server on http://localhost:3000 (alias: npm run dev)
 npm run build        # tsc --noEmit, then vite build → dist/
+npm run build:single # same, as one self-contained dist-single/index.html
 npm run typecheck    # type-check only
 npm run serve        # preview the production build
 npm run format       # prettier over css/js/json/md/ts/tsx
@@ -64,6 +65,14 @@ $ npm run build
 ```
 $ npm run serve
 ```
+
+**Single file (no server)**
+
+```
+$ npm run build:single
+```
+
+Creates `dist-single/index.html` with the script, styles, fonts and the demo vault built in. Open it straight from disk (double-click, `file://`) in any current browser; it needs no web server and can be copied to another machine as is. Its Content-Security-Policy only allows that one script and stylesheet, plus favicon images from `icons.bitwarden.net` (switch off "logos" to avoid those).
 
 # License
 

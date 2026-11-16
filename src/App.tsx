@@ -26,13 +26,16 @@ export default class App extends Component<object, AppContext> {
 
   state: AppContext = { ...initialContext, setContext: this.setContext };
 
+  fetchDemo = async () => {
+    const response = await fetch(`${import.meta.env.BASE_URL}demo.json`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.text();
+  };
+
   demoData = async () => {
     try {
-      const response = await fetch(`${import.meta.env.BASE_URL}demo.json`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
       // Same validation as an imported file
-      const text = await response.text();
+      const text = __DEMO_VAULT__ ?? (await this.fetchDemo());
       const data = parseJson(text);
       const foldersToPrint = folderOptions(data).map(({ id }) => id);
 
