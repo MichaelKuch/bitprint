@@ -124,7 +124,7 @@ export default class Intro extends Component {
                     Enter your password and click <strong>Export Vault</strong>.
                   </p>
                   <p className="mb-2">
-                    <em>(JSON and CSV are supported)</em>
+                    <em>(JSON, password protected JSON and CSV are supported)</em>
                   </p>
                 </div>
               </div>
