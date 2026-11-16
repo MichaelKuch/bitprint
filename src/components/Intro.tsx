@@ -43,7 +43,7 @@ export default class Intro extends Component {
           <p className="mt-4">
             <strong className="font-bold">
               TL;DR: Do not import your personal vault on this site. Use the{' '}
-              <a className="font-bold" href={`${base}?demo`}>
+              <a className="font-bold" href="?demo">
                 demo
               </a>
               , your own fake data, or fork the repo and run it yourself.
@@ -56,23 +56,28 @@ export default class Intro extends Component {
           </h2>
           <ul className="list-disc ml-4">
             <li>
-              <a className="inline-block" href={`//${host}${base}?demo`}>
-                {host + base}?demo
+              <a className="inline-block" href="?demo">
+                {__SINGLE_FILE__ ? 'Open the demo' : `${host + base}?demo`}
               </a>
               <span> (start here)</span>
             </li>
-            <li>
-              <a className="inline-block" href={`//${host}${base}demo.json`}>
-                {host + base}demo.json
-              </a>
-              <span> (vault export)</span>
-            </li>
-            <li>
-              <a className="inline-block" href={`//${host}${base}demo.pdf`}>
-                {host + base}demo.pdf
-              </a>
-              <span> (pdf to print)</span>
-            </li>
+            {/* The single-file build has no separate files to link to */}
+            {!__SINGLE_FILE__ && (
+              <>
+                <li>
+                  <a className="inline-block" href={`//${host}${base}demo.json`}>
+                    {host + base}demo.json
+                  </a>
+                  <span> (vault export)</span>
+                </li>
+                <li>
+                  <a className="inline-block" href={`//${host}${base}demo.pdf`}>
+                    {host + base}demo.pdf
+                  </a>
+                  <span> (pdf to print)</span>
+                </li>
+              </>
+            )}
           </ul>
         </section>
         <section className="mb-4 py-4">
