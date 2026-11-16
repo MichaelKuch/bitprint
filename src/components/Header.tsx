@@ -1,19 +1,43 @@
-import { Component, Fragment, createRef, type ChangeEvent, type ContextType } from 'react';
+import {
+  Component,
+  Fragment,
+  createRef,
+  type ChangeEvent,
+  type ContextType,
+  type FormEvent
+} from 'react';
 import classNames from 'classnames';
 
 import Context, { initialContext } from '../context';
-import { folderOptions, readVault, VaultImportError } from '../vault';
+import type { VaultData } from '../context';
+import type { PasswordProtectedExport } from '../crypto';
+import {
+  folderOptions,
+  PasswordRequiredError,
+  readVault,
+  unlockVault,
+  VaultImportError
+} from '../vault';
 
 import FileImportIcon from '../assets/file-import.svg?react';
 import PrintIcon from '../assets/print.svg?react';
 import ArrowLogo from '../assets/arrow.svg?react';
 import TrashIcon from '../assets/trash.svg?react';
 
-export default class Header extends Component {
+interface HeaderState {
+  /** A password protected export that is waiting for its password */
+  locked: { file: File; doc: PasswordProtectedExport } | null;
+  decrypting: boolean;
+}
+
+export default class Header extends Component<object, HeaderState> {
   static contextType = Context;
   declare context: ContextType<typeof Context>;
 
+  state: HeaderState = { locked: null, decrypting: false };
+
   fileInput = createRef<HTMLInputElement>();
+  passwordInput = createRef<HTMLInputElement>();
 
   toggleFolder = (id: string) => {
     const foldersToPrint = [...this.context.foldersToPrint];
@@ -34,22 +58,68 @@ export default class Header extends Component {
     if (!file) return;
 
     try {
-      const data = await readVault(file);
-      const foldersToPrint = folderOptions(data).map(({ id }) => id);
-
-      this.context.setContext({ data, file, foldersToPrint, error: null });
+      this.showVault(await readVault(file), file);
     } catch (error) {
+      if (error instanceof PasswordRequiredError) {
+        this.setState({ locked: { file, doc: error.doc } });
+        this.context.setContext({ error: null });
+        return;
+      }
+
       // Lets the same file be picked again after it has been fixed
       input.value = '';
-
-      this.context.setContext({
-        error: error instanceof VaultImportError ? error.message : 'The file could not be read.'
-      });
+      this.showError(error);
     }
+  };
+
+  showVault(data: VaultData, file: File) {
+    const foldersToPrint = folderOptions(data).map(({ id }) => id);
+    this.context.setContext({ data, file, foldersToPrint, error: null });
+  }
+
+  showError(error: unknown) {
+    this.context.setContext({
+      error: error instanceof VaultImportError ? error.message : 'The file could not be read.'
+    });
+  }
+
+  unlock = async (event: FormEvent) => {
+    event.preventDefault();
+
+    const { locked, decrypting } = this.state;
+    const input = this.passwordInput.current;
+    if (!locked || decrypting || !input || input.value === '') return;
+
+    // The password is only ever held in the input and in this call
+    const password = input.value;
+    this.setState({ decrypting: true });
+    this.context.setContext({ error: null });
+
+    try {
+      const data = await unlockVault(locked.doc, password);
+      if (this.state.locked !== locked) return; // cancelled in the meantime
+
+      this.setState({ locked: null, decrypting: false });
+      this.showVault(data, locked.file);
+    } catch (error) {
+      if (this.state.locked !== locked) return;
+
+      this.setState({ decrypting: false }, () => {
+        // Still mounted: the prompt stays open for another try
+        this.passwordInput.current?.select();
+      });
+      this.showError(error);
+    }
+  };
+
+  cancelUnlock = () => {
+    this.setState({ locked: null, decrypting: false });
+    this.context.setContext({ error: null });
   };
 
   resetState = () => {
     if (this.fileInput.current) this.fileInput.current.value = '';
+    this.setState({ locked: null, decrypting: false });
     // Drops `?demo`. The pathname rather than BASE_URL, so it also works from file://
     window.history.pushState(null, '', window.location.pathname);
     this.context.setContext({ ...initialContext });
@@ -63,6 +133,7 @@ export default class Header extends Component {
 
   render() {
     const { dataToPrint, foldersToPrint, data, file } = this.context;
+    const { locked, decrypting } = this.state;
     const dataToPrintKeys = Object.keys(dataToPrint);
     const folders = folderOptions(data);
 
@@ -79,24 +150,55 @@ export default class Header extends Component {
               <PrintIcon className="h-6 mr-2 text-blue-500" />
               <span>BitPrint</span>
             </h1>
-            <div className="flex items-center font-bold uppercase">
-              <span className="flex items-center mr-4 slide-in-left text-xs">
-                Click to start <ArrowLogo className="ml-2 h-5" />
-              </span>
-              <div className="relative btn -active">
-                <span className="flex items-center">
-                  <FileImportIcon className="h-4 mr-2" />
-                  <span className="text-xs">Import Vault</span>
+            {locked ? (
+              <form
+                className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4"
+                onSubmit={this.unlock}
+              >
+                <div className="flex flex-col md:flex-row md:items-center md:gap-3">
+                  <label className="label md:mb-0" htmlFor="export-password">
+                    Password for {locked.file.name}
+                  </label>
+                  <input
+                    autoComplete="off"
+                    autoFocus
+                    className="rounded-sm bg-white text-gray-900 px-3 py-1.5 text-sm outline-hidden focus:ring-3 focus:ring-blue-500"
+                    disabled={decrypting}
+                    id="export-password"
+                    ref={this.passwordInput}
+                    required
+                    type="password"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button className="btn -active" disabled={decrypting} type="submit">
+                    {decrypting ? 'Decrypting…' : 'Decrypt'}
+                  </button>
+                  <button className="btn" onClick={this.cancelUnlock} type="button">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="flex items-center font-bold uppercase">
+                <span className="flex items-center mr-4 slide-in-left text-xs">
+                  Click to start <ArrowLogo className="ml-2 h-5" />
                 </span>
-                <input
-                  className="opacity-0 absolute h-full w-full inset-0"
-                  accept=".json,.csv,application/json,text/csv"
-                  onChange={this.readFile}
-                  ref={this.fileInput}
-                  type="file"
-                />
+                <div className="relative btn -active">
+                  <span className="flex items-center">
+                    <FileImportIcon className="h-4 mr-2" />
+                    <span className="text-xs">Import Vault</span>
+                  </span>
+                  <input
+                    className="opacity-0 absolute h-full w-full inset-0"
+                    accept=".json,.csv,application/json,text/csv"
+                    onChange={this.readFile}
+                    ref={this.fileInput}
+                    type="file"
+                  />
+                </div>
               </div>
-            </div>
+            )}
           </div>
           {data.items.length > 0 && (
             <div className="flex flex-col xl:flex-row -mt-2 w-full">

@@ -26,7 +26,7 @@ Navigate to http://localhost:3000.
 
 ### How do I get my vault export?
 
-Follow the instructions at [Export Vault Data – Bitwarden Help Center](https://help.bitwarden.com/article/export-your-data/). Download either the CSV or unencrypted JSON format.
+Follow the instructions at [Export Vault Data – Bitwarden Help Center](https://help.bitwarden.com/article/export-your-data/). Download the CSV, the unencrypted JSON or the password protected JSON format. A password protected export is decrypted in the browser after you enter its password. "Account restricted" encrypted exports cannot be read, because their key never leaves Bitwarden.
 
 This file contains all of your passwords and secrets, and could be jeopardized by a compromised machine, network, or printer. Take care to delete it when finished.
 
